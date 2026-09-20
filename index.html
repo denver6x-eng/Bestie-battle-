@@ -69,8 +69,14 @@ if(m.type==="left")$("status").textContent="Bestie disconnect ho gayi 😭"}
 };
 }
 function send(x){if(ws&&connected)ws.send(JSON.stringify(x))}
-$("create").onclick=()=>{connect();setTimeout(()=>send({type:"create",name:$("name").value||"Player 1"}),150)};
-$("join").onclick=()=>{connect();setTimeout(()=>send({type:"join",code:$("code").value,name:$("name").value||"Player 2"}),150)};
+$("create").onclick=()=>{
+  if(ws&&ws.readyState===WebSocket.OPEN)return;
+  connect({type:"create",name:$("name").value||"Player 1"});
+};
+$("join").onclick=()=>{
+  if(ws&&ws.readyState===WebSocket.OPEN)return;
+  connect({type:"join",code:$("code").value,name:$("name").value||"Player 2"});
+};
 document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{if(index!==0)return;const c=b.dataset.cat;const q=data[c][Math.floor(Math.random()*data[c].length)];send({type:"question",round,category:c,question:q})});
 $("sendAnswer").onclick=()=>{const a=$("answer").value.trim();if(!a)return;send({type:"answer",answer:a});$("sendAnswer").disabled=true};
 $("point0").onclick=()=>send({type:"score",winner:0});
