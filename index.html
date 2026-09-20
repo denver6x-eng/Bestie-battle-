@@ -50,14 +50,14 @@
 </main>
 <script>
 const $=id=>document.getElementById(id);
-let ws,index,code,round=1,scores=[0,0],category="",connected=false;
+let ws,index,code,round=1,scores=[0,0],category="",connected=false,pending=null;
 const data={
 know:["Mera current mood kya hai?","Mujhe sabse zyada kis cheez se irritation hoti hai?","Agar main abhi free hota/hoti toh kya karta/karti?","Mera dream hangout kaisa hoga?","Main kis baat par sabse jaldi maan jaata/jaati hoon?"],
 truth:["Mere baare mein tumhari first impression kya thi?","Meri ek habit jo tum secretly like karti/karta ho?","Kab laga ki hum actually besties ban gaye?","Meri sabse funny memory tumhare saath kaunsi hai?"],
 choice:["Call 📞 ya chat 💬?","Late-night talks 🌙 ya morning texts ☀️?","Hug 🤗 ya high-five?","Movie night 🎬 ya random gossip 😂?","Long paragraph 💌 ya 'hmm' with attitude 😭?"],
 cute:["Agar main sad hoon toh tum mujhe kaise cheer up karogi?","Hum dono ko ek place teleport karna ho toh kahan?","Mujhe 3 words mein describe karo.","Humari friendship ka title kya hoga?"]
 };
-function connect(){ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);ws.onopen=()=>{connected=true};ws.onclose=()=>{connected=false};ws.onmessage=e=>{const m=JSON.parse(e.data);
+function connect(action){pending=action;ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);ws.onopen=()=>{connected=true;if(pending){const a=pending;pending=null;send(a)}};ws.onclose=()=>{connected=false};ws.onerror=()=>{$("err").textContent="Connection nahi ho rahi. Page reload karke try karo.";};ws.onmessage=e=>{const m=JSON.parse(e.data);
 if(m.type==="error"){$("err").textContent=m.message;return}
 if(m.type==="joined"){code=m.code;index=m.index;$("home").classList.add("hidden");$("room").classList.remove("hidden");$("roomCode").textContent=code;$("roomTitle").textContent=index===0?"Room created 🎉":"Joined 🎉"}
 if(m.type==="ready"){$("waiting").classList.add("hidden");$("game").classList.remove("hidden");$("roomTitle").textContent="Bestie connected! 💗";$("hostControls").style.display=index===0?"grid":"none"}
