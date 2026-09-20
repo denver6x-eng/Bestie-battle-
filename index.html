@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Long Distance Bestie Battle</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:linear-gradient(135deg,#fff1f7,#eef5ff);color:#20202a;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
+.app{width:min(560px,100%);background:#fff;border-radius:26px;padding:22px;box-shadow:0 16px 50px #0001}.center{text-align:center}.muted{color:#777}.hidden{display:none}.grid{display:grid;gap:10px}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}button,input{width:100%;padding:13px 14px;border-radius:13px;border:1px solid #ddd;font-size:16px}button{cursor:pointer;background:#fafafa;font-weight:700}button.primary{background:#20202a;color:white;border-color:#20202a}input{outline:none}.card{background:#f8f8fb;border-radius:18px;padding:16px}.q{font-size:21px;font-weight:800;line-height:1.35}.score{font-size:21px;font-weight:800}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#f0e9ff;font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+<main class="app">
+<section id="home">
+  <div class="center"><div style="font-size:34px">💗</div><h1>Long-Distance Bestie Battle</h1><p class="muted">Dono alag phones par, same room mein.</p></div>
+  <div class="grid" style="margin-top:18px">
+    <input id="name" maxlength="24" placeholder="Apna naam">
+    <button class="primary" id="create">✨ Create Room</button>
+    <div class="center muted">— ya —</div>
+    <input id="code" maxlength="5" placeholder="5-letter room code">
+    <button id="join">🔗 Join Room</button>
+  </div>
+  <p id="err" style="color:#b00020"></p>
+</section>
+
+<section id="room" class="hidden">
+  <div class="center"><span class="pill">ROOM <span id="roomCode"></span></span><h2 id="roomTitle">Waiting…</h2><p class="muted">Ye code apni bestie ko bhejo.</p></div>
+  <div class="card center" id="waiting">⏳ Bestie ke join karne ka wait…</div>
+  <div id="game" class="hidden">
+    <div class="row"><div class="card center">You<br><span class="score" id="s0">0</span></div><div class="card center">Bestie<br><span class="score" id="s1">0</span></div></div>
+    <div class="card" style="margin-top:10px">
+      <div class="muted" id="round">Round 1</div>
+      <div class="q" id="question" style="margin-top:8px">Question choose karo.</div>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <textarea id="answer" rows="3" placeholder="Apna answer likho…"></textarea>
+      <button class="primary" id="sendAnswer">📤 Send Answer</button>
+      <div class="card center" id="status">Dono answer bhejo, phir answers reveal honge.</div>
+    </div>
+    <div id="reveal" class="hidden card">
+      <b>Answers 💌</b><p id="a0"></p><p id="a1"></p>
+      <div class="row"><button id="point0">🏆 You +1</button><button id="point1">🏆 Bestie +1</button></div>
+      <button id="next" class="primary" style="margin-top:10px">➡️ Next Question</button>
+    </div>
+    <div id="hostControls" class="grid" style="margin-top:10px">
+      <button data-cat="know">🧠 Know Me</button><button data-cat="truth">💬 Truth</button><button data-cat="choice">⚡ This or That</button><button data-cat="cute">💗 Cute</button>
+    </div>
+  </div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let ws,index,code,round=1,scores=[0,0],category="",connected=false;
+const data={
+know:["Mera current mood kya hai?","Mujhe sabse zyada kis cheez se irritation hoti hai?","Agar main abhi free hota/hoti toh kya karta/karti?","Mera dream hangout kaisa hoga?","Main kis baat par sabse jaldi maan jaata/jaati hoon?"],
+truth:["Mere baare mein tumhari first impression kya thi?","Meri ek habit jo tum secretly like karti/karta ho?","Kab laga ki hum actually besties ban gaye?","Meri sabse funny memory tumhare saath kaunsi hai?"],
+choice:["Call 📞 ya chat 💬?","Late-night talks 🌙 ya morning texts ☀️?","Hug 🤗 ya high-five?","Movie night 🎬 ya random gossip 😂?","Long paragraph 💌 ya 'hmm' with attitude 😭?"],
+cute:["Agar main sad hoon toh tum mujhe kaise cheer up karogi?","Hum dono ko ek place teleport karna ho toh kahan?","Mujhe 3 words mein describe karo.","Humari friendship ka title kya hoga?"]
+};
+function connect(){ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);ws.onopen=()=>{connected=true};ws.onclose=()=>{connected=false};ws.onmessage=e=>{const m=JSON.parse(e.data);
+if(m.type==="error"){$("err").textContent=m.message;return}
+if(m.type==="joined"){code=m.code;index=m.index;$("home").classList.add("hidden");$("room").classList.remove("hidden");$("roomCode").textContent=code;$("roomTitle").textContent=index===0?"Room created 🎉":"Joined 🎉"}
+if(m.type==="ready"){$("waiting").classList.add("hidden");$("game").classList.remove("hidden");$("roomTitle").textContent="Bestie connected! 💗";$("hostControls").style.display=index===0?"grid":"none"}
+if(m.type==="question"){$("game").classList.remove("hidden");round=m.round;category=m.category;$("round").textContent="Round "+round+" · "+category;$("question").textContent=m.question;$("answer").value="";$("reveal").classList.add("hidden");$("status").textContent="Apna answer bhejo 💌"}
+if(m.type==="answerStatus")$("status").textContent=m.count===1?"Ek answer aa gaya — doosre ka wait…":"Answers aa rahe hain…";
+if(m.type==="answers"){$("a0").textContent="You: "+(m.answers[0]||"—");$("a1").textContent="Bestie: "+(m.answers[1]||"—");$("reveal").classList.remove("hidden");$("status").textContent="Reveal! 👀"}
+if(m.type==="scores"){scores=m.scores;$("s0").textContent=scores[0];$("s1").textContent=scores[1]}
+if(m.type==="left")$("status").textContent="Bestie disconnect ho gayi 😭"}
+};
+}
+function send(x){if(ws&&connected)ws.send(JSON.stringify(x))}
+$("create").onclick=()=>{connect();setTimeout(()=>send({type:"create",name:$("name").value||"Player 1"}),150)};
+$("join").onclick=()=>{connect();setTimeout(()=>send({type:"join",code:$("code").value,name:$("name").value||"Player 2"}),150)};
+document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{if(index!==0)return;const c=b.dataset.cat;const q=data[c][Math.floor(Math.random()*data[c].length)];send({type:"question",round,category:c,question:q})});
+$("sendAnswer").onclick=()=>{const a=$("answer").value.trim();if(!a)return;send({type:"answer",answer:a});$("sendAnswer").disabled=true};
+$("point0").onclick=()=>send({type:"score",winner:0});
+$("point1").onclick=()=>send({type:"score",winner:1});
+$("next").onclick=()=>{if(index!==0)return;round++;$("sendAnswer").disabled=false;const c=["know","truth","choice","cute"][Math.floor(Math.random()*4)];const q=data[c][Math.floor(Math.random()*data[c].length)];send({type:"question",round,category:c,question:q})};
+</script>
+</body>
+</html>
